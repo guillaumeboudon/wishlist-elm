@@ -1,2 +1,6 @@
-# JS
+# JS and elm
 node_modules/
+elm-stuff/
+
+# Build
+dist/
