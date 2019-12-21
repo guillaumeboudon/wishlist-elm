@@ -1,0 +1,11 @@
+{
+  "name": "wishlist",
+  "version": "0.0.1",
+  "description": "Personal wishlist in elm on Firebase.",
+  "author": "Guillaume BOUDON <guillaumeboudon@gmail.com>",
+  "repository": "https://github.com/guillaumeboudon/wishlist",
+  "license": "MIT",
+  "scripts": {},
+  "devDependencies": {},
+  "dependencies": {}
+}
