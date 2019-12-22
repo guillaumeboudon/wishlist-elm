@@ -41,6 +41,7 @@ const common = {
             },
           },
           "css-loader?url=false",
+          "postcss-loader",
         ],
       },
     ],
