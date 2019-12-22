@@ -16,7 +16,7 @@ const isDev = process.env.NODE_ENV !== "production"
 // Config
 const common = {
   mode: isDev ? "development" : "production",
-  entry: [path.join(srcPath, "main.js"), path.join(srcPath, "main.css")],
+  entry: [path.join(srcPath, "main.js"), path.join(srcPath, "main.scss")],
   output: {
     path: distPath,
     filename: isDev ? "[name].js" : "[name]-[hash].js",
@@ -31,7 +31,7 @@ const common = {
         },
       },
       {
-        test: /\.css$/,
+        test: /\.(scss|css)$/,
         exclude: [/elm-stuff/, /node_modules/],
         use: [
           {
@@ -42,6 +42,7 @@ const common = {
           },
           "css-loader?url=false",
           "postcss-loader",
+          "sass-loader",
         ],
       },
     ],
