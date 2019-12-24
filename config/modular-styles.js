@@ -1,3 +1,5 @@
+/*eslint-env node*/
+
 module.exports = {
   filesPath: 'src/css',
   destPath: 'build/elm/Styles',
