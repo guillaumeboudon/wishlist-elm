@@ -8,6 +8,7 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin")
 
 // Paths
 const srcPath = path.resolve(__dirname, "src")
+const buildPath = path.resolve(__dirname, "build")
 const distPath = path.resolve(__dirname, "dist")
 
 // Mode
@@ -16,7 +17,7 @@ const isDev = process.env.NODE_ENV !== "production"
 // Config
 const common = {
   mode: isDev ? "development" : "production",
-  entry: [path.join(srcPath, "main.js"), path.join(srcPath, "main.scss")],
+  entry: [path.join(srcPath, "main.js"), path.join(buildPath, "bundle.css")],
   output: {
     path: distPath,
     filename: isDev ? "[name].js" : "[name]-[hash].js",
