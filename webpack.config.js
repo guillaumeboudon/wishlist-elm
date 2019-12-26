@@ -81,7 +81,9 @@ if (isDev) {
         },
       ],
     },
-    // devServer: {},
+    devServer: {
+      historyApiFallback: true,
+    },
   })
 } else {
   module.exports = merge(common, {
