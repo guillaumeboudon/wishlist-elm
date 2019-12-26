@@ -1,9 +1,14 @@
 module Main exposing (main)
 
 import Browser
+import Browser.Navigation
 import Html exposing (Html)
 import Html.Attributes as A
+import Route
 import Styles.Global
+import Types exposing (..)
+import Update
+import Url exposing (Url)
 
 
 
@@ -12,13 +17,12 @@ import Styles.Global
 -- =============================================================================
 
 
-type alias Model =
-    String
-
-
-init : ( Model, Cmd Msg )
-init =
-    ( "Hello, World!", Cmd.none )
+init : () -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init _ url key =
+    url
+        |> Route.fromUrl
+        |> setRouteIn (initialModel key)
+        |> Update.identity
 
 
 
@@ -27,15 +31,27 @@ init =
 -- =============================================================================
 
 
-type Msg
-    = NoOp
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
+        ChangedUrl url ->
+            url
+                |> Route.fromUrl
+                |> setRouteIn model
+                |> Update.identity
+
+        ClickedLink urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    url
+                        |> Route.fromUrl
+                        |> Route.navigate model.key
+                        |> Tuple.pair model
+
+                Browser.External href ->
+                    href
+                        |> Browser.Navigation.load
+                        |> Tuple.pair model
 
 
 
@@ -46,8 +62,17 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        routeToString =
+            case model.route of
+                Route.Home ->
+                    "Home"
+
+                Route.NotFound ->
+                    "Not Found"
+    in
     { title = "Wishlist"
-    , body = [ Html.p [ A.class Styles.Global.greenText ] [ Html.text model ] ]
+    , body = [ Html.p [ A.class Styles.Global.grayBackground ] [ Html.text routeToString ] ]
     }
 
 
@@ -71,10 +96,10 @@ subscriptions model =
 main : Program () Model Msg
 main =
     Browser.application
-        { init = \_ _ _ -> init
+        { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlChange = always NoOp
-        , onUrlRequest = always NoOp
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
         }
