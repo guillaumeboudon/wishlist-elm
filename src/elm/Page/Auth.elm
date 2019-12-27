@@ -1,6 +1,7 @@
 module Page.Auth exposing (..)
 
 import Html exposing (Html)
+import Route exposing (href)
 import Types exposing (..)
 
 
@@ -35,4 +36,7 @@ initPage =
 
 view : Model -> Html msg
 view model =
-    Html.p [] [ Html.text "Auth" ]
+    Html.div []
+        [ Html.h1 [] [ Html.text "Auth" ]
+        , Html.a [ href Route.Home ] [ Html.text "Go to Sign In page" ]
+        ]

@@ -16,20 +16,19 @@ import Url.Parser as Parser exposing ((</>), Parser, s)
 type Route
     = Home
     | Auth AuthRoute
-    | NotFound
 
 
 type AuthRoute
-    = LogIn
-    | LogOut
+    = SignIn
+    | SignOut
 
 
 parser : Parser (Route -> a) a
 parser =
     Parser.oneOf
         [ Parser.map Home Parser.top
-        , Parser.map (Auth LogIn) (s "log_in")
-        , Parser.map (Auth LogIn) (s "log_out")
+        , Parser.map (Auth SignIn) (s "auth" </> s "sign_in")
+        , Parser.map (Auth SignOut) (s "auth" </> s "sign_out")
         ]
 
 
@@ -49,16 +48,15 @@ replaceUrl key route =
     Browser.Navigation.replaceUrl key (toString route)
 
 
-fromUrl : Url -> Route
+fromUrl : Url -> Maybe Route
 fromUrl url =
     Parser.parse parser url
-        |> Maybe.withDefault NotFound
 
 
-navigate : Key -> Route -> Cmd msg
-navigate key route =
-    route
-        |> toString
+navigate : Key -> Url -> Cmd msg
+navigate key url =
+    url
+        |> Url.toString
         |> Browser.Navigation.pushUrl key
 
 
@@ -78,13 +76,10 @@ toString route =
 
                 Auth authRoute ->
                     case authRoute of
-                        LogIn ->
-                            [ "log_in" ]
+                        SignIn ->
+                            [ "auth", "sign_in" ]
 
-                        LogOut ->
-                            [ "log_out" ]
-
-                NotFound ->
-                    []
+                        SignOut ->
+                            [ "auth", "sign_out" ]
     in
     "/" ++ String.join "/" pieces

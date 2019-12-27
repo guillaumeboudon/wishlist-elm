@@ -1,8 +1,13 @@
 module Page.NotFound exposing (view)
 
 import Html exposing (Html)
+import Route exposing (href)
 
 
 view : Html msg
 view =
-    Html.p [] [ Html.text "Not Found" ]
+    Html.div
+        []
+        [ Html.h1 [] [ Html.text "Not Found" ]
+        , Html.a [ href Route.Home ] [ Html.text "Go to Sign In page" ]
+        ]

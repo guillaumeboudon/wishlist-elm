@@ -81,7 +81,6 @@ update msg model =
             case urlRequest of
                 Browser.Internal url ->
                     url
-                        |> Route.fromUrl
                         |> Route.navigate (getKey model)
                         |> Tuple.pair model
 
@@ -91,27 +90,29 @@ update msg model =
                         |> Tuple.pair model
 
 
-changeRouteTo : Route -> Model -> ( Model, Cmd Msg )
-changeRouteTo route model =
-    case route of
-        Route.Home ->
-            model
-                |> extractRawModel
-                |> Home
-                |> Update.identity
-
-        Route.Auth authRoute ->
-            model
-                |> extractRawModel
-                |> setPage Page.Auth.initPage
-                |> Auth
-                |> Update.identity
-
-        Route.NotFound ->
+changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
+changeRouteTo maybeRoute model =
+    case maybeRoute of
+        Nothing ->
             model
                 |> extractRawModel
                 |> NotFound
                 |> Update.identity
+
+        Just route ->
+            case route of
+                Route.Home ->
+                    model
+                        |> extractRawModel
+                        |> Home
+                        |> Update.identity
+
+                Route.Auth authRoute ->
+                    model
+                        |> extractRawModel
+                        |> setPage Page.Auth.initPage
+                        |> Auth
+                        |> Update.identity
 
 
 
