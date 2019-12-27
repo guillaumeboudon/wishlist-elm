@@ -1,41 +1,35 @@
 module Types exposing (..)
 
 import Browser
-import Browser.Navigation
+import Browser.Navigation as Nav
 import Route exposing (Route)
 import Url exposing (Url)
 
 
-
--- =============================================================================
--- > Model
--- =============================================================================
-
-
-type alias Model =
-    { key : Browser.Navigation.Key
-    , route : Route
+type alias Modelized a =
+    { key : Nav.Key
+    , page : a
     }
 
 
-initialModel : Browser.Navigation.Key -> Model
-initialModel key =
+type alias RawModel =
+    Modelized {}
+
+
+initialRawModel : Nav.Key -> RawModel
+initialRawModel key =
     { key = key
-    , route = Route.NotFound
+    , page = {}
     }
 
 
-setRouteIn : Model -> Route -> Model
-setRouteIn model route =
-    { model | route = route }
+toRawModel : Modelized a -> RawModel
+toRawModel subModel =
+    initialRawModel subModel.key
 
 
-
--- =============================================================================
--- > Msg
--- =============================================================================
-
-
-type Msg
-    = ChangedUrl Url
-    | ClickedLink Browser.UrlRequest
+setPage : b -> Modelized a -> Modelized b
+setPage page model =
+    { key = model.key
+    , page = page
+    }

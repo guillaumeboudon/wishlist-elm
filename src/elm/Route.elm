@@ -1,10 +1,10 @@
-module Route exposing (Route(..), fromUrl, href, navigate, replaceUrl)
+module Route exposing (AuthRoute(..), Route(..), fromUrl, href, navigate, replaceUrl)
 
 import Browser.Navigation exposing (Key)
 import Html exposing (Attribute)
 import Html.Attributes
 import Url exposing (Url)
-import Url.Parser as Parser exposing (Parser)
+import Url.Parser as Parser exposing ((</>), Parser, s)
 
 
 
@@ -15,13 +15,22 @@ import Url.Parser as Parser exposing (Parser)
 
 type Route
     = Home
+    | Auth AuthRoute
     | NotFound
+
+
+type AuthRoute
+    = LogIn
+    | LogOut
 
 
 parser : Parser (Route -> a) a
 parser =
     Parser.oneOf
-        [ Parser.map Home Parser.top ]
+        [ Parser.map Home Parser.top
+        , Parser.map (Auth LogIn) (s "log_in")
+        , Parser.map (Auth LogIn) (s "log_out")
+        ]
 
 
 
@@ -66,6 +75,14 @@ toString route =
             case route of
                 Home ->
                     []
+
+                Auth authRoute ->
+                    case authRoute of
+                        LogIn ->
+                            [ "log_in" ]
+
+                        LogOut ->
+                            [ "log_out" ]
 
                 NotFound ->
                     []

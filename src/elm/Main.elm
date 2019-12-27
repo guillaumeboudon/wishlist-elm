@@ -1,10 +1,15 @@
 module Main exposing (main)
 
+-- import Types exposing (..)
+
 import Browser
-import Browser.Navigation
+import Browser.Navigation as Nav
 import Html exposing (Html)
 import Html.Attributes as A
-import Route
+import Page.Auth
+import Page.Home
+import Page.NotFound
+import Route exposing (Route)
 import Styles.Global
 import Types exposing (..)
 import Update
@@ -17,12 +22,41 @@ import Url exposing (Url)
 -- =============================================================================
 
 
-init : () -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+type Model
+    = Home RawModel
+    | Auth Page.Auth.Model
+    | NotFound RawModel
+
+
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    url
-        |> Route.fromUrl
-        |> setRouteIn (initialModel key)
-        |> Update.identity
+    initialModel key
+        |> changeRouteTo (Route.fromUrl url)
+
+
+initialModel : Nav.Key -> Model
+initialModel key =
+    Home (initialRawModel key)
+
+
+extractRawModel : Model -> RawModel
+extractRawModel model =
+    case model of
+        Home subModel ->
+            toRawModel subModel
+
+        Auth subModel ->
+            toRawModel subModel
+
+        NotFound subModel ->
+            toRawModel subModel
+
+
+getKey : Model -> Nav.Key
+getKey model =
+    model
+        |> extractRawModel
+        |> .key
 
 
 
@@ -31,27 +65,53 @@ init _ url key =
 -- =============================================================================
 
 
+type Msg
+    = ChangedUrl Url
+    | ClickedLink Browser.UrlRequest
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangedUrl url ->
-            url
-                |> Route.fromUrl
-                |> setRouteIn model
-                |> Update.identity
+            model
+                |> changeRouteTo (Route.fromUrl url)
 
         ClickedLink urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
                     url
                         |> Route.fromUrl
-                        |> Route.navigate model.key
+                        |> Route.navigate (getKey model)
                         |> Tuple.pair model
 
                 Browser.External href ->
                     href
-                        |> Browser.Navigation.load
+                        |> Nav.load
                         |> Tuple.pair model
+
+
+changeRouteTo : Route -> Model -> ( Model, Cmd Msg )
+changeRouteTo route model =
+    case route of
+        Route.Home ->
+            model
+                |> extractRawModel
+                |> Home
+                |> Update.identity
+
+        Route.Auth authRoute ->
+            model
+                |> extractRawModel
+                |> setPage Page.Auth.initPage
+                |> Auth
+                |> Update.identity
+
+        Route.NotFound ->
+            model
+                |> extractRawModel
+                |> NotFound
+                |> Update.identity
 
 
 
@@ -63,16 +123,19 @@ update msg model =
 view : Model -> Browser.Document Msg
 view model =
     let
-        routeToString =
-            case model.route of
-                Route.Home ->
-                    "Home"
+        subView =
+            case model of
+                Home _ ->
+                    Page.Home.view
 
-                Route.NotFound ->
-                    "Not Found"
+                Auth authModel ->
+                    Page.Auth.view authModel
+
+                NotFound _ ->
+                    Page.NotFound.view
     in
     { title = "Wishlist"
-    , body = [ Html.p [ A.class Styles.Global.grayBackground ] [ Html.text routeToString ] ]
+    , body = [ Html.div [ A.class Styles.Global.grayBackground ] [ subView ] ]
     }
 
 
