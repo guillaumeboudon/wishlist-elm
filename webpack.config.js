@@ -22,6 +22,7 @@ const common = {
   entry: [path.join(srcPath, "main.js"), path.join(buildPath, "bundle.css")],
   output: {
     path: distPath,
+    publicPath: "/",
     filename: isDev ? "[name].js" : "[name]-[hash].js",
   },
   module: {
