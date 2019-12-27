@@ -24,7 +24,7 @@ import Url exposing (Url)
 
 type Model
     = Home RawModel
-    | Auth Page.Auth.Model
+    | AuthSignIn Page.Auth.Model
     | NotFound RawModel
 
 
@@ -45,7 +45,7 @@ extractRawModel model =
         Home subModel ->
             toRawModel subModel
 
-        Auth subModel ->
+        AuthSignIn subModel ->
             toRawModel subModel
 
         NotFound subModel ->
@@ -68,16 +68,17 @@ getKey model =
 type Msg
     = ChangedUrl Url
     | ClickedLink Browser.UrlRequest
+    | AuthMsg Page.Auth.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        ChangedUrl url ->
+    case ( msg, model ) of
+        ( ChangedUrl url, _ ) ->
             model
                 |> changeRouteTo (Route.fromUrl url)
 
-        ClickedLink urlRequest ->
+        ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
                     url
@@ -88,6 +89,21 @@ update msg model =
                     href
                         |> Nav.load
                         |> Tuple.pair model
+
+        ( AuthMsg authMsg, AuthSignIn authModel ) ->
+            Page.Auth.update authMsg authModel
+                |> updateWith AuthSignIn AuthMsg model
+
+        ( _, _ ) ->
+            model
+                |> Update.identity
+
+
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -111,7 +127,7 @@ changeRouteTo maybeRoute model =
                     model
                         |> extractRawModel
                         |> setPage Page.Auth.initPage
-                        |> Auth
+                        |> AuthSignIn
                         |> Update.identity
 
 
@@ -129,8 +145,10 @@ view model =
                 Home _ ->
                     Page.Home.view
 
-                Auth authModel ->
-                    Page.Auth.view authModel
+                AuthSignIn authModel ->
+                    authModel
+                        |> Page.Auth.view
+                        |> Html.map AuthMsg
 
                 NotFound _ ->
                     Page.NotFound.view
