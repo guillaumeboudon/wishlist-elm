@@ -4,15 +4,16 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Nav
+import Firebase.Auth as Auth
+import Helper exposing (..)
 import Html exposing (Html)
 import Html.Attributes as A
 import Page.Auth
 import Page.Home
 import Page.NotFound
 import Route exposing (Route)
+import State exposing (RawState)
 import Styles.Global
-import Types exposing (..)
-import Update
 import Url exposing (Url)
 
 
@@ -23,40 +24,48 @@ import Url exposing (Url)
 
 
 type Model
-    = Home RawModel
-    | AuthSignIn Page.Auth.Model
-    | NotFound RawModel
+    = Home RawState
+    | Auth Page.Auth.Action Page.Auth.Model
+    | NotFound RawState
+
+
+initialModel : Nav.Key -> Model
+initialModel key =
+    State.initialState key
+        |> Home
+
+
+getRawState : Model -> RawState
+getRawState model =
+    case model of
+        Home state ->
+            State.toRawState state
+
+        Auth _ state ->
+            State.toRawState state
+
+        NotFound state ->
+            State.toRawState state
+
+
+getAuth : Model -> Auth.Auth
+getAuth model =
+    model
+        |> getRawState
+        |> .auth
+
+
+getKey : Model -> Nav.Key
+getKey model =
+    model
+        |> getRawState
+        |> .key
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
     initialModel key
         |> changeRouteTo (Route.fromUrl url)
-
-
-initialModel : Nav.Key -> Model
-initialModel key =
-    Home (initialRawModel key)
-
-
-extractRawModel : Model -> RawModel
-extractRawModel model =
-    case model of
-        Home subModel ->
-            toRawModel subModel
-
-        AuthSignIn subModel ->
-            toRawModel subModel
-
-        NotFound subModel ->
-            toRawModel subModel
-
-
-getKey : Model -> Nav.Key
-getKey model =
-    model
-        |> extractRawModel
-        |> .key
 
 
 
@@ -90,13 +99,22 @@ update msg model =
                         |> Nav.load
                         |> Tuple.pair model
 
-        ( AuthMsg authMsg, AuthSignIn authModel ) ->
-            Page.Auth.update authMsg authModel
-                |> updateWith AuthSignIn AuthMsg model
+        ( AuthMsg authMsg, Auth action authModel ) ->
+            case authMsg of
+                Page.Auth.Authenticate ->
+                    model
+                        |> getRawState
+                        |> State.setAuth (Auth.Authenticated Auth.fakeSession)
+                        |> Home
+                        |> withoutCmd
+
+                _ ->
+                    Page.Auth.update authMsg authModel
+                        |> updateWith (Auth action) AuthMsg model
 
         ( _, _ ) ->
             model
-                |> Update.identity
+                |> withoutCmd
 
 
 updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
@@ -111,24 +129,40 @@ changeRouteTo maybeRoute model =
     case maybeRoute of
         Nothing ->
             model
-                |> extractRawModel
+                |> getRawState
                 |> NotFound
-                |> Update.identity
+                |> withoutCmd
 
         Just route ->
             case route of
                 Route.Home ->
                     model
-                        |> extractRawModel
+                        |> getRawState
                         |> Home
-                        |> Update.identity
+                        |> withoutCmd
 
                 Route.Auth authRoute ->
-                    model
-                        |> extractRawModel
-                        |> setPage Page.Auth.initPage
-                        |> AuthSignIn
-                        |> Update.identity
+                    case authRoute of
+                        Route.SignOut ->
+                            model
+                                |> getRawState
+                                |> State.setAuth Auth.NotAuthenticated
+                                |> Home
+                                |> withoutCmd
+
+                        Route.SignIn ->
+                            model
+                                |> getRawState
+                                |> State.setPage Auth.initialAuthDetails
+                                |> Auth Page.Auth.SignIn
+                                |> withoutCmd
+
+                        Route.SignUp ->
+                            model
+                                |> getRawState
+                                |> State.setPage Auth.initialAuthDetails
+                                |> Auth Page.Auth.SignUp
+                                |> withoutCmd
 
 
 
@@ -143,11 +177,13 @@ view model =
         subView =
             case model of
                 Home _ ->
-                    Page.Home.view
+                    model
+                        |> getAuth
+                        |> Page.Home.view
 
-                AuthSignIn authModel ->
+                Auth action authModel ->
                     authModel
-                        |> Page.Auth.view
+                        |> flip Page.Auth.view action
                         |> Html.map AuthMsg
 
                 NotFound _ ->

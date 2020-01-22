@@ -1,59 +1,47 @@
 module Page.Auth exposing (..)
 
+import Firebase.Auth as Auth
+import Helper exposing (..)
 import Html exposing (Html)
 import Html.Attributes as A
 import Html.Events as E
-import Json.Decode as Decode
 import Route exposing (href)
-import Types exposing (..)
+import State exposing (..)
 import UIKit as UI
-import Update
 
 
 
 -- =============================================================================
--- > INIT
+-- > Init
 -- =============================================================================
 
 
 type alias Model =
-    Modelized Page
+    State Page
+
+
+type Action
+    = SignIn
+    | SignUp
 
 
 type alias Page =
-    { email : String
-    , password : String
-    }
-
-
-initPage : Page
-initPage =
-    { email = ""
-    , password = ""
-    }
+    Auth.Credentials
 
 
 setEmail : String -> Model -> Model
 setEmail email model =
-    let
-        page =
-            model.page
-    in
-    { model | page = { page | email = email } }
+    updatePage Auth.setEmail email model
 
 
 setPassword : String -> Model -> Model
 setPassword password model =
-    let
-        page =
-            model.page
-    in
-    { model | page = { page | password = password } }
+    updatePage Auth.setPassword password model
 
 
 
 -- =============================================================================
--- > UPDATE
+-- > Update
 -- =============================================================================
 
 
@@ -61,7 +49,7 @@ type Msg
     = InputEmail String
     | InputPassword String
     | GoToHome
-    | ValidateForm
+    | Authenticate
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -70,39 +58,46 @@ update msg model =
         InputEmail email ->
             model
                 |> setEmail email
-                |> Update.identity
+                |> withoutCmd
 
         InputPassword password ->
             model
                 |> setPassword password
-                |> Update.identity
+                |> withoutCmd
 
         GoToHome ->
             ( model
             , Route.replaceUrl model.key Route.Home
             )
 
-        ValidateForm ->
-            model
-                |> setEmail "<email validated>"
-                |> setPassword "<password validated>"
-                |> Update.identity
+        _ ->
+            model |> withoutCmd
 
 
 
 -- =============================================================================
--- > VIEW
+-- > View
 -- =============================================================================
 
 
-view : Model -> Html Msg
-view model =
+actionToText : Action -> String
+actionToText action =
+    case action of
+        SignIn ->
+            "Connexion"
+
+        SignUp ->
+            "Inscription"
+
+
+view : Model -> Action -> Html Msg
+view model action =
     Html.div []
-        [ Html.h1 [] [ Html.text "Connexion" ]
-        , Html.form [ E.onSubmit ValidateForm, UI.onReset GoToHome ]
+        [ Html.h1 [] [ Html.text <| actionToText action ]
+        , Html.form [ E.onSubmit Authenticate, UI.onReset GoToHome ]
             [ UI.inputEmail model.page.email "inputEmail" "Email" InputEmail
             , UI.inputPassword model.page.password "inputPassword" "Mot de passe" InputPassword
-            , UI.buttonSubmit "Se connecter"
+            , UI.buttonSubmit <| actionToText action
             , UI.buttonReset "Annuler"
             ]
         ]

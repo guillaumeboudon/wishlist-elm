@@ -8,9 +8,9 @@ import Url.Parser as Parser exposing ((</>), Parser, s)
 
 
 
--------------------------------------------------------------------------------
--- ROUTE
--------------------------------------------------------------------------------
+-- =============================================================================
+-- > Route
+-- =============================================================================
 
 
 type Route
@@ -20,6 +20,7 @@ type Route
 
 type AuthRoute
     = SignIn
+    | SignUp
     | SignOut
 
 
@@ -28,14 +29,15 @@ parser =
     Parser.oneOf
         [ Parser.map Home Parser.top
         , Parser.map (Auth SignIn) (s "auth" </> s "sign_in")
+        , Parser.map (Auth SignUp) (s "auth" </> s "sign_up")
         , Parser.map (Auth SignOut) (s "auth" </> s "sign_out")
         ]
 
 
 
--------------------------------------------------------------------------------
--- EXPOSED HELPERS
--------------------------------------------------------------------------------
+-- =============================================================================
+-- > Exposed Helpers
+-- =============================================================================
 
 
 href : Route -> Attribute msg
@@ -61,25 +63,29 @@ navigate key url =
 
 
 
--------------------------------------------------------------------------------
--- INTERNAL HELPERS
--------------------------------------------------------------------------------
+-- =============================================================================
+-- > Internal Helpers
+-- =============================================================================
+
+
+routePieces : Route -> List String
+routePieces route =
+    case route of
+        Home ->
+            []
+
+        Auth authRoute ->
+            case authRoute of
+                SignIn ->
+                    [ "auth", "sign_in" ]
+
+                SignUp ->
+                    [ "auth", "sign_up" ]
+
+                SignOut ->
+                    [ "auth", "sign_out" ]
 
 
 toString : Route -> String
 toString route =
-    let
-        pieces =
-            case route of
-                Home ->
-                    []
-
-                Auth authRoute ->
-                    case authRoute of
-                        SignIn ->
-                            [ "auth", "sign_in" ]
-
-                        SignOut ->
-                            [ "auth", "sign_out" ]
-    in
-    "/" ++ String.join "/" pieces
+    "/" ++ String.join "/" (routePieces route)

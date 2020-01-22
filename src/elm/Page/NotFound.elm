@@ -9,5 +9,5 @@ view =
     Html.div
         []
         [ Html.h1 [] [ Html.text "Not Found" ]
-        , Html.a [ href Route.Home ] [ Html.text "Go to Sign In page" ]
+        , Html.a [ href Route.Home ] [ Html.text "Go to Home page" ]
         ]
