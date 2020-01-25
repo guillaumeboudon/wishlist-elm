@@ -48,6 +48,19 @@ getRawState model =
             State.toRawState state
 
 
+setAuth : Auth.Auth -> Model -> Model
+setAuth auth model =
+    case model of
+        Home state ->
+            Home <| State.setAuth auth state
+
+        Auth action state ->
+            Auth action <| State.setAuth auth state
+
+        NotFound state ->
+            NotFound <| State.setAuth auth state
+
+
 getAuth : Model -> Auth.Auth
 getAuth model =
     model
@@ -77,7 +90,8 @@ init _ url key =
 type Msg
     = ChangedUrl Url
     | ClickedLink Browser.UrlRequest
-    | AuthMsg Page.Auth.Msg
+    | PageAuthMsg Page.Auth.Msg
+    | FirebaseAuthMsg Auth.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -99,22 +113,61 @@ update msg model =
                         |> Nav.load
                         |> Tuple.pair model
 
-        ( AuthMsg authMsg, Auth action authModel ) ->
+        ( PageAuthMsg authMsg, Auth action authModel ) ->
             case authMsg of
-                Page.Auth.Authenticate ->
-                    model
-                        |> getRawState
-                        |> State.setAuth (Auth.Authenticated Auth.fakeSession)
-                        |> Home
-                        |> withoutCmd
+                Page.Auth.RequestSignIn ->
+                    Page.Auth.getCredentials authModel.page
+                        |> Auth.signIn
+                        |> flip withCmd model
+
+                Page.Auth.RequestSignUp ->
+                    Page.Auth.getCredentials authModel.page
+                        |> Auth.signUp
+                        |> flip withCmd model
 
                 _ ->
                     Page.Auth.update authMsg authModel
-                        |> updateWith (Auth action) AuthMsg model
+                        |> updateWith (Auth action) PageAuthMsg model
+
+        ( FirebaseAuthMsg authMsg, _ ) ->
+            updateAuth authMsg model
 
         ( _, _ ) ->
+            model |> withoutCmd
+
+
+updateAuth : Auth.Msg -> Model -> ( Model, Cmd Msg )
+updateAuth authMsg model =
+    let
+        handleError : String -> ( Model, Cmd Msg )
+        handleError errorCode =
+            case model of
+                Auth authAction authModel ->
+                    authModel
+                        |> Page.Auth.setErrorCode errorCode
+                        |> Auth authAction
+                        |> withoutCmd
+
+                _ ->
+                    model
+                        |> changeRouteTo (Just Route.Home)
+    in
+    case authMsg of
+        Auth.SignUpError errorCode ->
+            handleError errorCode
+
+        Auth.SignInError errorCode ->
+            handleError errorCode
+
+        Auth.LoggedIn session ->
             model
-                |> withoutCmd
+                |> setAuth (Auth.Authenticated session)
+                |> changeRouteTo (Just Route.Home)
+
+        Auth.LoggedOut ->
+            model
+                |> setAuth Auth.NotAuthenticated
+                |> changeRouteTo (Just Route.Home)
 
 
 updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
@@ -145,22 +198,19 @@ changeRouteTo maybeRoute model =
                     case authRoute of
                         Route.SignOut ->
                             model
-                                |> getRawState
-                                |> State.setAuth Auth.NotAuthenticated
-                                |> Home
-                                |> withoutCmd
+                                |> withCmd Auth.signOut
 
                         Route.SignIn ->
                             model
                                 |> getRawState
-                                |> State.setPage Auth.initialAuthDetails
+                                |> State.setPage Page.Auth.initialPage
                                 |> Auth Page.Auth.SignIn
                                 |> withoutCmd
 
                         Route.SignUp ->
                             model
                                 |> getRawState
-                                |> State.setPage Auth.initialAuthDetails
+                                |> State.setPage Page.Auth.initialPage
                                 |> Auth Page.Auth.SignUp
                                 |> withoutCmd
 
@@ -184,7 +234,7 @@ view model =
                 Auth action authModel ->
                     authModel
                         |> flip Page.Auth.view action
-                        |> Html.map AuthMsg
+                        |> Html.map PageAuthMsg
 
                 NotFound _ ->
                     Page.NotFound.view
@@ -202,7 +252,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.map FirebaseAuthMsg (Auth.authFromJs Auth.decodeFromJs)
 
 
 

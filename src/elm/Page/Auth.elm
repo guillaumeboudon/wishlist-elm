@@ -26,7 +26,15 @@ type Action
 
 
 type alias Page =
-    Auth.Credentials
+    { email : String
+    , password : String
+    , errorCode : String
+    }
+
+
+initialPage : Page
+initialPage =
+    Page "" "" ""
 
 
 setEmail : String -> Model -> Model
@@ -39,6 +47,16 @@ setPassword password model =
     updatePage Auth.setPassword password model
 
 
+setErrorCode : String -> Model -> Model
+setErrorCode errorCode model =
+    updatePage (\a b -> { b | errorCode = a }) errorCode model
+
+
+getCredentials : Page -> Auth.Credentials
+getCredentials { email, password } =
+    Auth.Credentials email password
+
+
 
 -- =============================================================================
 -- > Update
@@ -49,7 +67,8 @@ type Msg
     = InputEmail String
     | InputPassword String
     | GoToHome
-    | Authenticate
+    | RequestSignIn
+    | RequestSignUp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -90,11 +109,22 @@ actionToText action =
             "Inscription"
 
 
+actionToSubmitMsg : Action -> Msg
+actionToSubmitMsg action =
+    case action of
+        SignIn ->
+            RequestSignIn
+
+        SignUp ->
+            RequestSignUp
+
+
 view : Model -> Action -> Html Msg
 view model action =
     Html.div []
         [ Html.h1 [] [ Html.text <| actionToText action ]
-        , Html.form [ E.onSubmit Authenticate, UI.onReset GoToHome ]
+        , Html.p [] [ Html.text model.page.errorCode ]
+        , Html.form [ E.onSubmit <| actionToSubmitMsg action, UI.onReset GoToHome ]
             [ UI.inputEmail model.page.email "inputEmail" "Email" InputEmail
             , UI.inputPassword model.page.password "inputPassword" "Mot de passe" InputPassword
             , UI.buttonSubmit <| actionToText action

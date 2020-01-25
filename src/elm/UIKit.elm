@@ -28,9 +28,18 @@ formGroup =
     Html.div [ A.class "form-group" ]
 
 
-formLabel : Id -> Label -> Html msg
-formLabel id label =
-    Html.label [ A.for id ] [ Html.text label ]
+formLabel : Id -> Label -> Required -> Html msg
+formLabel id label required =
+    let
+        fullLabel =
+            case required of
+                True ->
+                    label ++ " *"
+
+                False ->
+                    label
+    in
+    Html.label [ A.for id ] [ Html.text fullLabel ]
 
 
 type InputType
@@ -51,6 +60,10 @@ type alias Label =
     String
 
 
+type alias Required =
+    Bool
+
+
 inputTypeToString : InputType -> String
 inputTypeToString inputType =
     case inputType of
@@ -64,45 +77,46 @@ inputTypeToString inputType =
             "password"
 
 
-inputAttributes : Value -> Id -> (String -> msg) -> List (Html.Attribute msg)
-inputAttributes value id toMsg =
+inputAttributes : Value -> Id -> (String -> msg) -> Required -> List (Html.Attribute msg)
+inputAttributes value id toMsg required =
     [ E.onInput toMsg
     , A.value value
     , A.id id
     , A.class "form-control"
+    , A.required required
     ]
 
 
-inputFormGroup : InputType -> Value -> Id -> Label -> (String -> msg) -> Html msg
-inputFormGroup inputType value id label toMsg =
-    [ formLabel id label
+inputFormGroup : InputType -> Value -> Id -> Label -> (String -> msg) -> Required -> Html msg
+inputFormGroup inputType value id label toMsg required =
+    [ formLabel id label required
     , Html.input
-        ((A.type_ <| inputTypeToString inputType) :: inputAttributes value id toMsg)
+        ((A.type_ <| inputTypeToString inputType) :: inputAttributes value id toMsg required)
         []
     ]
         |> formGroup
 
 
-inputText : Value -> Id -> Label -> (String -> msg) -> Html msg
-inputText =
-    inputFormGroup Text
+inputText : Value -> Id -> Label -> (String -> msg) -> Required -> Html msg
+inputText value id label toMsg required =
+    inputFormGroup Text value id label toMsg required
 
 
 inputEmail : Value -> Id -> Label -> (String -> msg) -> Html msg
-inputEmail =
-    inputFormGroup Email
+inputEmail value id label toMsg =
+    inputFormGroup Email value id label toMsg True
 
 
 inputPassword : Value -> Id -> Label -> (String -> msg) -> Html msg
-inputPassword =
-    inputFormGroup Password
+inputPassword value id label toMsg =
+    inputFormGroup Password value id label toMsg True
 
 
-textarea : Value -> Id -> Label -> (String -> msg) -> Html msg
-textarea value id label toMsg =
-    [ formLabel id label
+textarea : Value -> Id -> Label -> (String -> msg) -> Required -> Html msg
+textarea value id label toMsg required =
+    [ formLabel id label required
     , Html.textarea
-        (inputAttributes value id toMsg)
+        (inputAttributes value id toMsg required)
         []
     ]
         |> formGroup
